@@ -36,13 +36,15 @@ class AppBase(RelativeLayout):
         self.add_widget(self.label)
 
         self.rect = None
-        self.customspeed = False
         self.value = 0.0
 
         self.last_position = None
         self.frameGaps = collections.deque([0.1], maxlen=10)
         self.framegap = 0.0
         self.updated = False
+        self.customspeed = False
+        self.speed = 2.0
+
 
     def _keyboard_closed(self):
         print('My keyboard have been closed!')
@@ -76,7 +78,16 @@ class AppBase(RelativeLayout):
             self.label.text = ''
         elif keycode[1] == 'escape':
             sys.exit(1)
-
+        elif keycode[1] == 'pageup':
+            if self.speed < 16.0:
+                self.speed *= 2.0
+                if self.speed == 1.0:
+                    self.speed = 2.0
+        elif keycode[1] == 'pagedown':
+            if self.speed > 1.0 / 16.0:
+                self.speed /= 2.0
+                if self.speed == 1.0:
+                    self.speed = 0.5
         # Return True to accept the key. Otherwise, it will be used by
         # the system.
         return True
@@ -93,14 +104,13 @@ class AppBase(RelativeLayout):
             Clock.schedule_interval(self.update, 0.0)  #Schedule at max interval
             self.label.text = 'Play >'
 
-
     def custom_play_pause(self):
         if self.v.state == 'play':
             self.play_pause()
         if self.customspeed is False:
             self.customspeed = True
             Clock.schedule_interval(self.custom_update, 0.0)
-            self.label.text = 'Custom speed >>'
+            self.label.text = 'Custom speed %5.3f >>' % self.speed
         else:
             self.customspeed = False
             Clock.unschedule(self.custom_update)
@@ -117,7 +127,8 @@ class AppBase(RelativeLayout):
         if self.rect is None:
             with self.canvas:
                 Color(1, 0, 0, 0.5, mode='rgba')
-                self.rect = Rectangle(pos_hint={'top': 1, 'right': 1}, size=(100, 100))
+                self.rect = Rectangle(size=(100, 100))
+                self.rect.pos = (100,100)
 
     def clear_canvas(self):
         if self.rect is not None:
@@ -140,13 +151,15 @@ class AppBase(RelativeLayout):
             self.updated = False
 
     def update(self, dt):
-        print dt
         self.tick()
 
     def custom_update(self, dt):
         self._frameGap()
-        self.step_video(True, step_size=self.framegap * 4)
-
+        self.step_video(True, step_size=self.framegap * self.speed)
+        if self.speed > 1:
+            self.label.text = 'Custom speed x %d ' % int(self.speed)
+        else:
+            self.label.text = 'Custom speed x 1/%d ' % int(1/self.speed)
 
 class MyApp(App):
     def build(self):
