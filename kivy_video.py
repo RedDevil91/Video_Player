@@ -34,23 +34,20 @@ class AppBase(FloatLayout):
         self.rect = None
 
     def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
-        print('The key', keycode, 'have been pressed')
-        print(' - text is %r' % text)
-        print(' - modifiers are %r' % modifiers)
+        print 'The key', keycode[1], 'have been pressed'
+        # print(' - text is %r' % text)
+        # print(' - modifiers are %r' % modifiers)
 
-        if keycode[1] == 's':
-            self.value += 0.1
-            if self.value >= 1:
-                self.value = 0.0
-            self.v.seek(self.value)
-        elif keycode[1] == 'h':
+        if keycode[1] == 'h':
             self.draw_rect()
         elif keycode[1] == 'g':
             self.clear_canvas()
         elif keycode[1] == 'left':
-            print self.v.duration
+            self.v.state = 'pause'
+            self.step_video(False)
         elif keycode[1] == 'right':
-            print self.v.position
+            self.v.state = 'pause'
+            self.step_video(True)
         elif keycode[1] == 'spacebar':
             if self.v.state == 'play':
                 self.v.state = 'pause'
@@ -66,6 +63,13 @@ class AppBase(FloatLayout):
         # Return True to accept the key. Otherwise, it will be used by
         # the system.
         return True
+
+    def step_video(self, direction, step_size=0.05):
+        if direction:
+            self.value = (self.v.position + step_size) / self.v.duration
+        else:
+            self.value = (self.v.position - step_size) / self.v.duration
+        self.v.seek(self.value)
 
     def draw_rect(self):
         if self.rect is None:
