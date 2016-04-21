@@ -21,7 +21,7 @@ if len(sys.argv) != 2:
 class AppBase(RelativeLayout):
     def __init__(self, **kwargs):
         super(AppBase, self).__init__(**kwargs)
-        self.pos = (0, 0)
+        self.padding = 20
 
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self, 'text')
         self._keyboard.bind(on_key_down=self._on_keyboard_down)
@@ -30,8 +30,8 @@ class AppBase(RelativeLayout):
         self.add_widget(self.v)
 
         self.label = Label()
+        self.label.pos_hint = {'center_x': .8, 'center_y': .8}
         self.label.color = (0, 255, 0, 1)
-        self.label.pos_hint = {'top': 1.4, 'right': 1.3}
         self.label.font_size = '30sp'
         self.add_widget(self.label)
 
@@ -45,6 +45,8 @@ class AppBase(RelativeLayout):
         self.customspeed = False
         self.speed = 2.0
 
+        self.draw_rect = False
+        self.bind(pos=self.on_resize, size=self.on_resize)
 
     def _keyboard_closed(self):
         print('My keyboard have been closed!')
@@ -57,9 +59,9 @@ class AppBase(RelativeLayout):
         # print(' - modifiers are %r' % modifiers)
 
         if keycode[1] == 'h':
-            self.draw_rect()
+            self.draw_rect = True
         elif keycode[1] == 'g':
-            self.clear_canvas()
+            self.draw_rect = False
         elif keycode[1] == 's':
             self.custom_play_pause()
         elif keycode[1] == 'left':
@@ -110,7 +112,6 @@ class AppBase(RelativeLayout):
         if self.customspeed is False:
             self.customspeed = True
             Clock.schedule_interval(self.custom_update, 0.0)
-            self.label.text = 'Custom speed %5.3f >>' % self.speed
         else:
             self.customspeed = False
             Clock.unschedule(self.custom_update)
@@ -123,18 +124,28 @@ class AppBase(RelativeLayout):
             self.value = (self.v.position - step_size) / self.v.duration
         self.v.seek(self.value)
 
-    def draw_rect(self):
-        if self.rect is None:
+    def on_draw(self):
+        if self.rect is None and self.draw_rect:
             with self.canvas:
-                Color(1, 0, 0, 0.5, mode='rgba')
-                self.rect = Rectangle(size=(100, 100))
-                self.rect.pos = (100,100)
-
-    def clear_canvas(self):
-        if self.rect is not None:
+                Color(1, 0, 0, 0.3, mode='rgba')
+                self.rect = Rectangle(pos=(self.padding, self.padding),
+                                      size=(self.width - 2 * self.padding, self.height - 2 * self.padding))
+                # self.rect_label = Label(pos_hint={'center_x': .5, 'center_y': .5},
+                #                        text='Objects',
+                #                        font_size='50sp',
+                #                        color=(1,1,1,1))
+                # self.add_widget(self.rect_label)
+        if self.rect is not None and not self.draw_rect:
             self.canvas.remove(self.rect)
+            #self.remove_widget(self.rect_label)
+            #self.rect_label = None
             self.rect = None
             #self.canvas.clear()
+
+    def on_resize(self, *args):
+        if self.rect is not None:
+            self.rect.pos = (self.padding, self.padding)
+            self.rect.size = (self.width - 2 * self.padding, self.height - 2 * self.padding)
 
     def tick(self):
         if self.last_position is None:
@@ -152,6 +163,7 @@ class AppBase(RelativeLayout):
 
     def update(self, dt):
         self.tick()
+        self.on_draw()
 
     def custom_update(self, dt):
         self._frameGap()
@@ -160,6 +172,8 @@ class AppBase(RelativeLayout):
             self.label.text = 'Custom speed x %d ' % int(self.speed)
         else:
             self.label.text = 'Custom speed x 1/%d ' % int(1/self.speed)
+        self.on_draw()
+
 
 class MyApp(App):
     def build(self):
