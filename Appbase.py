@@ -2,6 +2,7 @@ import sys
 import collections
 import numpy as np
 from kivy.uix.videoplayer import VideoPlayer
+from kivy.uix.video import Video
 from kivy.core.window import Window
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.label import Label
@@ -26,6 +27,17 @@ class AppBase(RelativeLayout):
         self.label.font_size = '30sp'
         self.add_widget(self.label)
         self.rect_label = None
+
+        self.time_label = Label(pos_hint={'center_x': .3, 'center_y': .2},
+                                font_size='20sp',
+                                color=(1, 1, 1, 1))
+        self.add_widget(self.time_label)
+
+        self.rect_label = Label(pos_hint={'center_x': .5, 'center_y': .5},
+                                text='',
+                                font_size='50sp',
+                                color=(1, 1, 1, 1))
+        self.add_widget(self.rect_label)
 
         self.rect = None
         self.value = 0.0
@@ -57,11 +69,11 @@ class AppBase(RelativeLayout):
         elif keycode[1] == 's':
             self.custom_play_pause()
         elif keycode[1] == 'left':
-            self.v.state = 'pause'
+            self.play_pause(force=True)
             self.step_video(False)
             self.label.text = "<< Step backward"
         elif keycode[1] == 'right':
-            self.v.state = 'pause'
+            self.play_pause(force=True)
             self.step_video(True)
             self.label.text = "Step forward >>"
         elif keycode[1] == 'spacebar':
@@ -86,17 +98,24 @@ class AppBase(RelativeLayout):
         # the system.
         return True
 
-    def play_pause(self):
-        if self.customspeed:
-            self.custom_play_pause()
-        if self.v.state == 'play':
-            self.v.state = 'pause'
+    def play_pause(self, force=False):
+        if force:
             Clock.unschedule(self.update)
+            Clock.unschedule(self.custom_update)
+            self.v.state = 'pause'
+            self.customspeed = False
             self.label.text = 'Pause ||'
         else:
-            self.v.state = 'play'
-            Clock.schedule_interval(self.update, 0.0)  # Schedule at max interval (once per frame)
-            self.label.text = 'Play >'
+            if self.customspeed:
+                self.custom_play_pause()
+            if self.v.state == 'play':
+                self.v.state = 'pause'
+                Clock.unschedule(self.update)
+                self.label.text = 'Pause ||'
+            else:
+                self.v.state = 'play'
+                Clock.schedule_interval(self.update, 0.0)  # Schedule at max interval (once per frame)
+                self.label.text = 'Play >'
 
     def custom_play_pause(self):
         if self.v.state == 'play':
@@ -115,6 +134,8 @@ class AppBase(RelativeLayout):
         else:
             self.value = (self.v.position - step_size) / self.v.duration
         self.v.seek(self.value)
+        self.tickReset()
+        self.on_draw()
 
     def on_draw(self):
         if self.rect is None and self.draw_rect:
@@ -122,17 +143,14 @@ class AppBase(RelativeLayout):
                 Color(1, 0, 0, 0.3, mode='rgba')
                 self.rect = Rectangle(pos=(self.padding, self.padding),
                                       size=(self.width - 2 * self.padding, self.height - 2 * self.padding))
-                self.rect_label = Label(pos_hint={'center_x': .5, 'center_y': .5},
-                                        text='Objects',
-                                        font_size='50sp',
-                                        color=(1,1,1,1))
-                self.add_widget(self.rect_label)
-        if self.rect is not None and not self.draw_rect:
+                self.rect_label.text = 'Objects'
+        elif self.rect is not None and not self.draw_rect:
             self.canvas.remove(self.rect)
             self.rect_label.text = ''
             self.rect = None
             # self.canvas.clear()
 
+        self.time_label.text = "Time: %.4f" % self.v.position
         # print self.rect_label is None
 
     def on_resize(self, *args):
@@ -154,16 +172,22 @@ class AppBase(RelativeLayout):
             self.framegap = np.mean(self.frameGaps)
             self.updated = False
 
+    def tickReset(self):
+        '''To prevent frame calculation error when custom play'''
+        self.last_position = None
+
     def update(self, dt):
         self.tick()
         self.on_draw()
 
     def custom_update(self, dt):
-        # TODO check video position and start normal play when position is close to eos
-        self._frameGap()
-        self.step_video(True, step_size=self.framegap * self.speed)
-        if self.speed > 1:
-            self.label.text = 'Custom speed x %d ' % int(self.speed)
+        if self.v.position + 0.5 > self.v.duration:
+            self.tickReset()
+            self.play_pause()
         else:
-            self.label.text = 'Custom speed x 1/%d ' % int(1/self.speed)
-        self.on_draw()
+            self._frameGap()
+            self.step_video(True, step_size=self.framegap * self.speed)
+            if self.speed > 1:
+                self.label.text = 'Custom speed x %d ' % int(self.speed)
+            else:
+                self.label.text = 'Custom speed x 1/%d ' % int(1/self.speed)

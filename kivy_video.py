@@ -1,11 +1,10 @@
 import sys
 import os
-
-# os.environ["KIVY_NO_CONSOLELOG"] = "1"  # no logs will be printed to the console
-
 import threading
 import time
 from kivy.app import App
+
+# os.environ["KIVY_NO_CONSOLELOG"] = "1"  # no logs will be printed to the console
 
 
 if len(sys.argv) != 2:
@@ -30,12 +29,10 @@ if __name__ == '__main__':
     back_thread.setDaemon(True)
     back_thread.start()
     # back_thread.run()
-    print
-    print "!"
-    print
     timer = 0
     prev_time = time.time()
     while timer < 30:
         next_time = time.time()
         timer += next_time - prev_time
         prev_time = next_time
+        time.sleep(0.5)
