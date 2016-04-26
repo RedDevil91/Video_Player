@@ -58,7 +58,7 @@ class AppBase(RelativeLayout):
         self._keyboard = None
 
     def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
-        print 'The key', keycode[1], 'have been pressed'
+        # print 'The key', keycode[1], 'have been pressed'
         # print(' - text is %r' % text)
         # print(' - modifiers are %r' % modifiers)
 

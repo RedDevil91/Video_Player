@@ -1,10 +1,11 @@
 import sys
 import os
+os.environ["KIVY_NO_CONSOLELOG"] = "1"  # no logs will be printed to the console
 import threading
 import time
 from kivy.app import App
-
-# os.environ["KIVY_NO_CONSOLELOG"] = "1"  # no logs will be printed to the console
+from kivy.logger import Logger
+from kivy.config import Config
 
 
 if len(sys.argv) != 2:
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     back_thread = threading.Thread(target=run_app)
     back_thread.setDaemon(True)
     back_thread.start()
+    Logger.info("App: Background thread has started")
     # back_thread.run()
     timer = 0
     prev_time = time.time()
@@ -36,3 +38,4 @@ if __name__ == '__main__':
         timer += next_time - prev_time
         prev_time = next_time
         time.sleep(0.5)
+    print "END!"
